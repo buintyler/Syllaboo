@@ -1,0 +1,2 @@
+# Syllaboo
+AI Reading Companion
