@@ -1,0 +1,8 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/stt" },
+    { "path": "./server/stt-relay" },
+    { "path": "./inngest" }
+  ]
+}
