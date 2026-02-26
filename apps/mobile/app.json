@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "AI Reading Companion",
+    "slug": "syllaboo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.syllaboo.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "This app uses your microphone to listen to your child read aloud."
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone so your child can read aloud."
+        }
+      ]
+    ],
+    "scheme": "syllaboo",
+    "experiments": {
+      "typedRoutes": true
+    },
+    "newArchEnabled": true
+  }
+}
