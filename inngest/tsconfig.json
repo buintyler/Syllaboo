@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "outDir": "./dist",
+    "rootDir": ".",
+    "composite": true
+  },
+  "include": ["./*.ts", "functions/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
