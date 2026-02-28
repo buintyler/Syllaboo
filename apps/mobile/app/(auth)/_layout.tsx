@@ -1,12 +1,13 @@
-import { useAuth } from '@clerk/clerk-expo';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 
 export default function AuthLayout() {
-  const { isSignedIn } = useAuth();
-
-  if (isSignedIn) {
-    return <Redirect href="/(reading)" />;
-  }
-
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="verify-email" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="consent" />
+      <Stack.Screen name="create-child-profile" />
+    </Stack>
+  );
 }
