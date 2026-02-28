@@ -4,9 +4,11 @@ const supabaseUrl = process.env['EXPO_PUBLIC_SUPABASE_URL'];
 const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'];
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
-    'Missing Supabase configuration. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.',
-  );
+  if (!__DEV__) {
+    throw new Error(
+      'Missing Supabase configuration. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.',
+    );
+  }
 }
 
 type TokenGetter = () => Promise<string | null>;
@@ -18,6 +20,9 @@ type TokenGetter = () => Promise<string | null>;
  * endpoint added to Supabase's JWT settings.
  */
 export function createSupabaseClient(getToken: TokenGetter): SupabaseClient {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY.');
+  }
   return createClient(supabaseUrl, supabaseAnonKey, {
     global: {
       fetch: async (input, init = {}) => {

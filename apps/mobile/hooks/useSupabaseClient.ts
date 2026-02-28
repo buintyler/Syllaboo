@@ -9,7 +9,7 @@ export function useSupabaseClient() {
 
   return useMemo(
     () =>
-      createSupabaseClient(() => getTokenRef.current({ template: 'supabase' })),
+      createSupabaseClient(() => getTokenRef.current()),
     [],
   );
 }
