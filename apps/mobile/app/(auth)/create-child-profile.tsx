@@ -56,25 +56,18 @@ export default function CreateChildProfileScreen() {
 
       if (userError || !userData) throw userError ?? new Error('User not found');
 
-      // Create child profile
-      const { error: profileError } = await supabase
-        .from('child_profiles')
-        .insert({
-          parent_id: userData.id,
-          display_name: displayName.trim(),
-          avatar_id: selectedAvatarId,
-          reading_level: 1,
-        });
+      // Create child profile and mark onboarding complete atomically
+      const { error: rpcError } = await supabase.rpc(
+        'create_child_profile_and_complete_onboarding',
+        {
+          p_parent_id: userData.id,
+          p_display_name: displayName.trim(),
+          p_avatar_id: selectedAvatarId,
+          p_reading_level: 1,
+        },
+      );
 
-      if (profileError) throw profileError;
-
-      // Mark onboarding as complete
-      const { error: updateError } = await supabase
-        .from('users')
-        .update({ onboarding_complete: true })
-        .eq('id', userData.id);
-
-      if (updateError) throw updateError;
+      if (rpcError) throw rpcError;
 
       // Navigate to the reading zone
       router.replace('/(reading)');

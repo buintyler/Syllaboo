@@ -73,6 +73,10 @@ export default function AuthScreen() {
       if (result.status === 'complete' && result.createdSessionId) {
         await setSignInActive({ session: result.createdSessionId });
         await syncUser();
+      } else if (result.status === 'needs_second_factor') {
+        setError('Two-factor authentication is not supported yet. Please contact support.');
+      } else if (result.status === 'needs_first_factor') {
+        setError('Additional verification required. Please try again.');
       }
     } catch (err: unknown) {
       setError(parseClerkError(err));

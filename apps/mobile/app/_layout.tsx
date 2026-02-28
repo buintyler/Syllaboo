@@ -5,7 +5,13 @@ import * as SecureStore from 'expo-secure-store';
 import LoadingScreen from '../components/LoadingScreen';
 import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 
-const publishableKey = process.env['EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY'] ?? '';
+const publishableKey = process.env['EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY'];
+
+if (!publishableKey) {
+  throw new Error(
+    'Missing Clerk configuration. Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env file.',
+  );
+}
 
 const tokenCache = {
   async getToken(key: string): Promise<string | undefined | null> {
@@ -57,7 +63,7 @@ function AuthGatedLayout() {
     }
   }, [isLoaded, isSignedIn, segments, isLoading, onboardingComplete, router, navigationState?.key]);
 
-  if (!isLoaded) {
+  if (!isLoaded || (isSignedIn && isLoading)) {
     return <LoadingScreen />;
   }
 

@@ -1,15 +1,33 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env['EXPO_PUBLIC_SUPABASE_URL'] ?? '';
-const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'] ?? '';
+const supabaseUrl = process.env['EXPO_PUBLIC_SUPABASE_URL'];
+const supabaseAnonKey = process.env['EXPO_PUBLIC_SUPABASE_ANON_KEY'];
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    'Missing Supabase configuration. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.',
+  );
+}
+
+type TokenGetter = () => Promise<string | null>;
 
 /**
- * Creates a Supabase client using the anon key.
+ * Creates a Supabase client that injects the Clerk JWT on every request.
  *
- * Note: Once RLS policies are configured with Clerk JWT verification,
- * update this to inject the Clerk token via getToken(). This requires
- * adding the Clerk JWKS to Supabase's JWT settings first.
+ * Requires a "supabase" JWT template in Clerk Dashboard and the Clerk JWKS
+ * endpoint added to Supabase's JWT settings.
  */
-export function createSupabaseClient(): SupabaseClient {
-  return createClient(supabaseUrl, supabaseAnonKey);
+export function createSupabaseClient(getToken: TokenGetter): SupabaseClient {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      fetch: async (input, init = {}) => {
+        const clerkToken = await getToken();
+        const headers = new Headers(init.headers);
+        if (clerkToken) {
+          headers.set('Authorization', `Bearer ${clerkToken}`);
+        }
+        return fetch(input, { ...init, headers });
+      },
+    },
+  });
 }

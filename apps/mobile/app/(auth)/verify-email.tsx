@@ -34,6 +34,10 @@ export default function VerifyEmailScreen() {
         await setActive({ session: result.createdSessionId });
         await syncUser();
         // Root layout auth guard handles redirect to consent
+      } else if (result.status === 'missing_requirements') {
+        setError('Additional steps are required. Please try signing up again.');
+      } else {
+        setError('Verification could not be completed. Please try again.');
       }
     } catch (err: unknown) {
       setError(parseClerkError(err));

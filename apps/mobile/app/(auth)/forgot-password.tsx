@@ -84,9 +84,14 @@ export default function ForgotPasswordScreen() {
         code,
         password: newPassword,
       });
+
       if (result.status === 'complete' && result.createdSessionId) {
         await setActive({ session: result.createdSessionId });
         // Auth guard handles navigation
+      } else if (result.status === 'needs_second_factor') {
+        setError('Two-factor authentication is not supported yet. Please contact support.');
+      } else {
+        setError('Unable to reset password. Please try again.');
       }
     } catch (err: unknown) {
       setError(parseClerkError(err));

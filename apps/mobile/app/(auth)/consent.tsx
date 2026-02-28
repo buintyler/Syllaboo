@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useState } from 'react';
 import { useUser } from '@clerk/clerk-expo';
@@ -128,10 +129,17 @@ export default function ConsentScreen() {
           )}
         </TouchableOpacity>
 
-        <Text style={styles.policyLink}>
-          {'Read our full '}
-          <Text style={styles.policyLinkText}>Privacy Policy</Text>
-        </Text>
+        <TouchableOpacity
+          onPress={() => Linking.openURL('https://syllaboo.app/privacy')}
+          activeOpacity={0.7}
+          accessibilityRole="link"
+          accessibilityLabel="Read our full Privacy Policy"
+        >
+          <Text style={styles.policyLink}>
+            {'Read our full '}
+            <Text style={styles.policyLinkText}>Privacy Policy</Text>
+          </Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
