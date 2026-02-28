@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.syllaboo.app",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSMicrophoneUsageDescription": "This app uses your microphone to listen to your child read aloud."
       }
@@ -25,7 +26,8 @@
         {
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone so your child can read aloud."
         }
-      ]
+      ],
+      "expo-apple-authentication"
     ],
     "scheme": "syllaboo",
     "experiments": {
