@@ -1,8 +1,16 @@
 {
   "files": [],
   "references": [
-    { "path": "./packages/stt" },
-    { "path": "./server/stt-relay" },
-    { "path": "./inngest" }
-  ]
+    {
+      "path": "./packages/stt"
+    },
+    {
+      "path": "./server/stt-relay"
+    },
+    {
+      "path": "./inngest"
+    }
+  ],
+  "compilerOptions": {},
+  "extends": "expo/tsconfig.base"
 }

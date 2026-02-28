@@ -27,7 +27,8 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone so your child can read aloud."
         }
       ],
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-secure-store"
     ],
     "scheme": "syllaboo",
     "experiments": {
