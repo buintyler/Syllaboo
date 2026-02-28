@@ -13,8 +13,8 @@ export const colors = {
     reading: '#FFF8F0',    // Reading session background
   },
   brand: {
-    primary: '#93D4EC',       // Light baby blue — primary buttons, CTAs, highlights
-    primaryDark: '#7EC8E3',   // Darker blue — pressed state
+    primary: '#4AAFE0',       // Bold baby blue — primary buttons, CTAs, highlights
+    primaryDark: '#3A9AD0',   // Darker blue — pressed state
     secondary: '#7ECEC1',     // Soft teal — secondary actions, accents
     secondaryDark: '#5EBDB0', // Darker teal — pressed state
     accent: '#FF6B6B',        // Coral — error states, mispronounced words
@@ -55,15 +55,15 @@ export const typography = {
   caption: { fontSize: 13, fontWeight: '500' as const, lineHeight: 18 },
   small: { fontSize: 11, fontWeight: '400' as const, lineHeight: 16 },
   reading: {
-    fontSize: 32,
+    fontSize: 38,
     fontWeight: '600' as const,
-    lineHeight: 48,
+    lineHeight: 54,
     letterSpacing: 0.5,
   },
   readingHighlight: {
-    fontSize: 32,
+    fontSize: 38,
     fontWeight: '700' as const,
-    lineHeight: 48,
+    lineHeight: 54,
   },
 } as const;
 
@@ -100,7 +100,7 @@ export const shadows = {
     elevation: 3,
   },
   button: {
-    shadowColor: '#93D4EC',
+    shadowColor: '#4AAFE0',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
