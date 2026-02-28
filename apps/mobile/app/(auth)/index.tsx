@@ -8,18 +8,98 @@ import {
   Platform,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useSignIn, useSignUp, useOAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 import SammyAvatar from '../../components/SammyAvatar';
 import { colors, typography, spacing, layout, shadows } from '../../constants/theme';
 
 type AuthTab = 'signin' | 'create';
 
 export default function AuthScreen() {
+  const router = useRouter();
+  const { signIn, setActive: setSignInActive, isLoaded: isSignInLoaded } = useSignIn();
+  const { signUp, isLoaded: isSignUpLoaded } = useSignUp();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_apple' });
+
   const [activeTab, setActiveTab] = useState<AuthTab>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const clearError = useCallback(() => setError(''), []);
+
+  const handleSignIn = useCallback(async () => {
+    if (!isSignInLoaded || !signIn) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      const result = await signIn.create({ identifier: email, password });
+
+      if (result.status === 'complete' && setSignInActive) {
+        await setSignInActive({ session: result.createdSessionId });
+        router.replace('/(reading)');
+      }
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ longMessage?: string; message?: string }> };
+      setError(
+        clerkError.errors?.[0]?.longMessage ||
+          clerkError.errors?.[0]?.message ||
+          'Sign in failed. Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [isSignInLoaded, signIn, email, password, setSignInActive, router]);
+
+  const handleSignUp = useCallback(async () => {
+    if (!isSignUpLoaded || !signUp) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      await signUp.create({ emailAddress: email, password });
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      router.push('/(auth)/verify');
+    } catch (err: unknown) {
+      const clerkError = err as { errors?: Array<{ longMessage?: string; message?: string }> };
+      setError(
+        clerkError.errors?.[0]?.longMessage ||
+          clerkError.errors?.[0]?.message ||
+          'Account creation failed. Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [isSignUpLoaded, signUp, email, password, router]);
+
+  const handleAppleSignIn = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const { createdSessionId, setActive } = await startOAuthFlow();
+
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        router.replace('/(reading)');
+      }
+    } catch (err: unknown) {
+      const appleError = err as { code?: string; message?: string };
+      if (appleError.code === 'ERR_REQUEST_CANCELED') return;
+      setError(appleError.message || 'Apple sign in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [startOAuthFlow, router]);
+
+  const handleSubmit = activeTab === 'signin' ? handleSignIn : handleSignUp;
+  const isLoaded = activeTab === 'signin' ? isSignInLoaded : isSignUpLoaded;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,7 +112,7 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Mascot — swap SammyAvatar internals with real art when ready */}
+          {/* Mascot */}
           <SammyAvatar size="large" />
 
           {/* Brand title */}
@@ -44,12 +124,14 @@ export default function AuthScreen() {
 
           {/* Auth card */}
           <View style={styles.card}>
-
             {/* Tab switcher */}
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'signin' && styles.tabActive]}
-                onPress={() => setActiveTab('signin')}
+                onPress={() => {
+                  setActiveTab('signin');
+                  clearError();
+                }}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activeTab === 'signin' }}
@@ -60,7 +142,10 @@ export default function AuthScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'create' && styles.tabActive]}
-                onPress={() => setActiveTab('create')}
+                onPress={() => {
+                  setActiveTab('create');
+                  clearError();
+                }}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activeTab === 'create' }}
@@ -71,6 +156,13 @@ export default function AuthScreen() {
               </TouchableOpacity>
             </View>
 
+            {/* Error message */}
+            {error ? (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
             {/* Email */}
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -78,11 +170,15 @@ export default function AuthScreen() {
               placeholder="parent@example.com"
               placeholderTextColor={colors.text.disabled}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(text) => {
+                setEmail(text);
+                clearError();
+              }}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
               accessibilityLabel="Email address"
+              editable={!loading}
             />
 
             {/* Password */}
@@ -93,10 +189,14 @@ export default function AuthScreen() {
                 placeholder="••••••••"
                 placeholderTextColor={colors.text.disabled}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  clearError();
+                }}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 accessibilityLabel="Password"
+                editable={!loading}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword((v) => !v)}
@@ -122,14 +222,20 @@ export default function AuthScreen() {
 
             {/* Primary CTA */}
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, (!isLoaded || loading) && styles.primaryButtonDisabled]}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={activeTab === 'signin' ? 'Sign in' : 'Create account'}
+              onPress={handleSubmit}
+              disabled={!isLoaded || loading}
             >
-              <Text style={styles.primaryButtonText}>
-                {activeTab === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={colors.text.onBrand} />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {activeTab === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* OR divider */}
@@ -139,17 +245,20 @@ export default function AuthScreen() {
               <View style={styles.orLine} />
             </View>
 
-            {/* Sign in with Apple — required by Apple for Kids category */}
-            <TouchableOpacity
-              style={styles.appleButton}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in with Apple"
-            >
-              {/* Replace  with Apple logo asset if needed */}
-              <Text style={styles.appleLogo}></Text>
-              <Text style={styles.appleButtonText}>Sign in with Apple</Text>
-            </TouchableOpacity>
+            {/* Sign in with Apple */}
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={styles.appleButton}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Apple"
+                onPress={handleAppleSignIn}
+                disabled={loading}
+              >
+                <Text style={styles.appleLogo}></Text>
+                <Text style={styles.appleButtonText}>Sign in with Apple</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Trust badges */}
             <View style={styles.badgesRow}>
@@ -164,7 +273,7 @@ export default function AuthScreen() {
             </View>
           </View>
 
-          {/* Terms — links are acceptable here (parent zone, no parental gate needed on auth screen) */}
+          {/* Terms */}
           <Text style={styles.terms}>
             {'By continuing, you agree to our '}
             <Text style={styles.termsLink}>Terms of Service</Text>
@@ -250,6 +359,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Error
+  errorContainer: {
+    backgroundColor: '#FFF0F0',
+    borderRadius: layout.inputBorderRadius,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.brand.accent,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.brand.accent,
+    textAlign: 'center',
+  },
+
   // Form
   label: {
     ...typography.caption,
@@ -314,6 +437,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: spacing.xs,
     ...shadows.button,
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonText: {
     ...typography.bodyBold,
