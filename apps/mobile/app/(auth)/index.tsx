@@ -8,10 +8,15 @@ import {
   Platform,
   ScrollView,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
+import { useSignIn, useSignUp, useOAuth } from '@clerk/clerk-expo';
+import { useRouter } from 'expo-router';
 import SammyAvatar from '../../components/SammyAvatar';
 import { colors, typography, spacing, layout, shadows } from '../../constants/theme';
+import { validateEmail, validatePassword, parseClerkError } from '../../lib/validation';
+import { useUserSync } from '../../hooks/useUserSync';
 
 type AuthTab = 'signin' | 'create';
 
@@ -20,6 +25,119 @@ export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const { signIn, setActive: setSignInActive, isLoaded: signInLoaded } = useSignIn();
+  const { signUp, isLoaded: signUpLoaded } = useSignUp();
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_apple' });
+  const { syncUser } = useUserSync();
+  const router = useRouter();
+
+  const clearErrors = () => {
+    setError(null);
+    setEmailError(null);
+    setPasswordError(null);
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (emailError) setEmailError(null);
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (passwordError) setPasswordError(null);
+  };
+
+  const handleSignIn = async () => {
+    if (!signIn || !signInLoaded) return;
+    clearErrors();
+
+    const emailResult = validateEmail(email);
+    const passwordResult = validatePassword(password);
+    if (!emailResult.isValid) {
+      setEmailError(emailResult.error);
+      return;
+    }
+    if (!passwordResult.isValid) {
+      setPasswordError(passwordResult.error);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await signIn.create({ identifier: email.trim(), password });
+      if (result.status === 'complete' && result.createdSessionId) {
+        await setSignInActive({ session: result.createdSessionId });
+        await syncUser();
+      }
+    } catch (err: unknown) {
+      setError(parseClerkError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async () => {
+    if (!signUp || !signUpLoaded) return;
+    clearErrors();
+
+    const emailResult = validateEmail(email);
+    const passwordResult = validatePassword(password);
+    if (!emailResult.isValid) {
+      setEmailError(emailResult.error);
+      return;
+    }
+    if (!passwordResult.isValid) {
+      setPasswordError(passwordResult.error);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await signUp.create({ emailAddress: email.trim(), password });
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      router.push('/(auth)/verify-email');
+    } catch (err: unknown) {
+      setError(parseClerkError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setIsLoading(true);
+    clearErrors();
+    try {
+      const { createdSessionId, setActive } = await startOAuthFlow();
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        await syncUser();
+      }
+    } catch (err: unknown) {
+      const parsed = parseClerkError(err);
+      if (parsed !== 'Something went wrong. Please try again.') {
+        setError(parsed);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = () => {
+    router.push('/(auth)/forgot-password');
+  };
+
+  const handlePrimaryCta = () => {
+    if (activeTab === 'signin') {
+      handleSignIn();
+    } else {
+      handleSignUp();
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,7 +150,7 @@ export default function AuthScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Mascot — swap SammyAvatar internals with real art when ready */}
+          {/* Mascot */}
           <SammyAvatar size="large" />
 
           {/* Brand title */}
@@ -49,7 +167,7 @@ export default function AuthScreen() {
             <View style={styles.tabBar}>
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'signin' && styles.tabActive]}
-                onPress={() => setActiveTab('signin')}
+                onPress={() => { setActiveTab('signin'); clearErrors(); }}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activeTab === 'signin' }}
@@ -60,7 +178,7 @@ export default function AuthScreen() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.tab, activeTab === 'create' && styles.tabActive]}
-                onPress={() => setActiveTab('create')}
+                onPress={() => { setActiveTab('create'); clearErrors(); }}
                 activeOpacity={0.8}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: activeTab === 'create' }}
@@ -74,28 +192,31 @@ export default function AuthScreen() {
             {/* Email */}
             <Text style={styles.label}>Email</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, emailError && styles.inputError]}
               placeholder="parent@example.com"
               placeholderTextColor={colors.text.disabled}
               value={email}
-              onChangeText={setEmail}
+              onChangeText={handleEmailChange}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
+              editable={!isLoading}
               accessibilityLabel="Email address"
             />
+            {emailError ? <Text style={styles.fieldError}>{emailError}</Text> : null}
 
             {/* Password */}
             <Text style={styles.label}>Password</Text>
-            <View style={styles.passwordRow}>
+            <View style={[styles.passwordRow, passwordError && styles.inputError]}>
               <TextInput
                 style={styles.passwordInput}
                 placeholder="••••••••"
                 placeholderTextColor={colors.text.disabled}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={handlePasswordChange}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                editable={!isLoading}
                 accessibilityLabel="Password"
               />
               <TouchableOpacity
@@ -107,12 +228,14 @@ export default function AuthScreen() {
                 <Text style={styles.eyeIcon}>{showPassword ? '🙈' : '👁️'}</Text>
               </TouchableOpacity>
             </View>
+            {passwordError ? <Text style={styles.fieldError}>{passwordError}</Text> : null}
 
             {/* Forgot password — sign in only */}
             {activeTab === 'signin' && (
               <TouchableOpacity
                 style={styles.forgotRow}
                 activeOpacity={0.7}
+                onPress={handleForgotPassword}
                 accessibilityRole="link"
                 accessibilityLabel="Forgot password"
               >
@@ -120,16 +243,29 @@ export default function AuthScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Form-level error */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
             {/* Primary CTA */}
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[styles.primaryButton, isLoading && styles.buttonDisabled]}
               activeOpacity={0.85}
+              onPress={handlePrimaryCta}
+              disabled={isLoading}
               accessibilityRole="button"
               accessibilityLabel={activeTab === 'signin' ? 'Sign in' : 'Create account'}
             >
-              <Text style={styles.primaryButtonText}>
-                {activeTab === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
-              </Text>
+              {isLoading ? (
+                <ActivityIndicator size="small" color={colors.text.onBrand} />
+              ) : (
+                <Text style={styles.primaryButtonText}>
+                  {activeTab === 'signin' ? 'SIGN IN' : 'CREATE ACCOUNT'}
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* OR divider */}
@@ -139,15 +275,16 @@ export default function AuthScreen() {
               <View style={styles.orLine} />
             </View>
 
-            {/* Sign in with Apple — required by Apple for Kids category */}
+            {/* Sign in with Apple */}
             <TouchableOpacity
-              style={styles.appleButton}
+              style={[styles.appleButton, isLoading && styles.buttonDisabled]}
               activeOpacity={0.85}
+              onPress={handleAppleSignIn}
+              disabled={isLoading}
               accessibilityRole="button"
               accessibilityLabel="Sign in with Apple"
             >
-              {/* Replace  with Apple logo asset if needed */}
-              <Text style={styles.appleLogo}></Text>
+              <Text style={styles.appleLogo}>{'\uF8FF'}</Text>
               <Text style={styles.appleButtonText}>Sign in with Apple</Text>
             </TouchableOpacity>
 
@@ -164,7 +301,7 @@ export default function AuthScreen() {
             </View>
           </View>
 
-          {/* Terms — links are acceptable here (parent zone, no parental gate needed on auth screen) */}
+          {/* Terms */}
           <Text style={styles.terms}>
             {'By continuing, you agree to our '}
             <Text style={styles.termsLink}>Terms of Service</Text>
@@ -268,6 +405,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg.primary,
     minHeight: layout.minTapTarget,
   },
+  inputError: {
+    borderColor: colors.state.error,
+  },
   passwordRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,6 +432,10 @@ const styles = StyleSheet.create({
   eyeIcon: {
     fontSize: 18,
   },
+  fieldError: {
+    ...typography.small,
+    color: colors.state.error,
+  },
 
   // Forgot
   forgotRow: {
@@ -303,6 +447,18 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.brand.secondary,
     fontWeight: '500',
+  },
+
+  // Error
+  errorBox: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: layout.inputBorderRadius,
+    padding: spacing.md,
+  },
+  errorText: {
+    ...typography.caption,
+    color: colors.state.error,
+    textAlign: 'center',
   },
 
   // Primary button
@@ -319,6 +475,9 @@ const styles = StyleSheet.create({
     ...typography.bodyBold,
     color: colors.text.onBrand,
     letterSpacing: 1,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 
   // OR divider
