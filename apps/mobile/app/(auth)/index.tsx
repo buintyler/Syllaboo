@@ -166,7 +166,6 @@ export default function AuthScreen() {
 
           {/* Auth card */}
           <View style={styles.card}>
-
             {/* Tab switcher */}
             <View style={styles.tabBar}>
               <TouchableOpacity
@@ -280,17 +279,19 @@ export default function AuthScreen() {
             </View>
 
             {/* Sign in with Apple */}
-            <TouchableOpacity
-              style={[styles.appleButton, isLoading && styles.buttonDisabled]}
-              activeOpacity={0.85}
-              onPress={handleAppleSignIn}
-              disabled={isLoading}
-              accessibilityRole="button"
-              accessibilityLabel="Sign in with Apple"
-            >
-              <Text style={styles.appleLogo}>{'\uF8FF'}</Text>
-              <Text style={styles.appleButtonText}>Sign in with Apple</Text>
-            </TouchableOpacity>
+            {Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={[styles.appleButton, isLoading && styles.buttonDisabled]}
+                activeOpacity={0.85}
+                onPress={handleAppleSignIn}
+                disabled={isLoading}
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with Apple"
+              >
+                <Text style={styles.appleLogo}>{'\uF8FF'}</Text>
+                <Text style={styles.appleButtonText}>Sign in with Apple</Text>
+              </TouchableOpacity>
+            )}
 
             {/* Trust badges */}
             <View style={styles.badgesRow}>
