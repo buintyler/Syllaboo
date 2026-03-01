@@ -1,14 +1,21 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
+import { colors } from '../../constants/theme';
 
-export default function ReadingSession() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Reading Session</Text>
-    </View>
-  );
+export default function ReadingIndex() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace('/(reading)/session');
+  }, [router]);
+
+  return <View style={styles.container} />;
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 24, fontWeight: 'bold' },
+  container: {
+    flex: 1,
+    backgroundColor: colors.bg.primary,
+  },
 });

@@ -7,7 +7,7 @@ import { useOnboardingStatus } from '../hooks/useOnboardingStatus';
 
 const publishableKey = process.env['EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY'];
 
-if (!publishableKey) {
+if (!publishableKey && !__DEV__) {
   throw new Error(
     'Missing Clerk configuration. Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env file.',
   );
@@ -26,8 +26,19 @@ const tokenCache = {
 };
 
 export default function RootLayout() {
+  // In dev without Clerk key, skip auth and go straight to reading session
+  if (__DEV__ && !publishableKey) {
+    return (
+      <Stack initialRouteName="(reading)">
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(parent)" options={{ headerShown: false }} />
+        <Stack.Screen name="(reading)" options={{ headerShown: false }} />
+      </Stack>
+    );
+  }
+
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+    <ClerkProvider publishableKey={publishableKey!} tokenCache={tokenCache}>
       <ClerkLoaded>
         <AuthGatedLayout />
       </ClerkLoaded>

@@ -13,8 +13,8 @@ export const colors = {
     reading: '#FFF8F0',    // Reading session background
   },
   brand: {
-    primary: '#93D4EC',       // Light baby blue — primary buttons, CTAs, highlights
-    primaryDark: '#7EC8E3',   // Darker blue — pressed state
+    primary: '#2176AE',       // Medium blue — primary buttons, CTAs (4.9:1 vs white)
+    primaryDark: '#1A6699',   // Darker blue — pressed state (6.2:1 vs white)
     secondary: '#7ECEC1',     // Soft teal — secondary actions, accents
     secondaryDark: '#5EBDB0', // Darker teal — pressed state
     accent: '#FF6B6B',        // Coral — error states, mispronounced words
@@ -100,7 +100,7 @@ export const shadows = {
     elevation: 3,
   },
   button: {
-    shadowColor: '#93D4EC',
+    shadowColor: '#2176AE',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
