@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
-import { useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, AccessibilityInfo } from 'react-native';
+import { useRef, useEffect, useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, typography } from '../../constants/theme';
 
@@ -18,14 +18,27 @@ export default function ReadingTopBar({
 }: ReadingTopBarProps) {
   const progress = totalWords > 0 ? currentWordIndex / totalWords : 0;
   const fillAnim = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(true);
 
   useEffect(() => {
-    Animated.timing(fillAnim, {
-      toValue: progress,
-      duration: 400,
-      useNativeDriver: false,
-    }).start();
-  }, [progress, fillAnim]);
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduceMotion)
+      .catch(() => setReduceMotion(false));
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      fillAnim.setValue(progress);
+    } else {
+      Animated.timing(fillAnim, {
+        toValue: progress,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [progress, reduceMotion, fillAnim]);
 
   const fillColor = fillAnim.interpolate({
     inputRange: [0, 0.5, 1],
