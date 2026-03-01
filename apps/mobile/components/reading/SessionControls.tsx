@@ -28,12 +28,12 @@ export default function SessionControls({ isListening }: SessionControlsProps) {
         Animated.sequence([
           Animated.timing(dotOpacity, {
             toValue: 0.3,
-            duration: 500,
+            duration: 300,
             useNativeDriver: true,
           }),
           Animated.timing(dotOpacity, {
             toValue: 1,
-            duration: 500,
+            duration: 300,
             useNativeDriver: true,
           }),
         ]),

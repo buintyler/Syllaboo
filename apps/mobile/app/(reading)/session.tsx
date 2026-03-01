@@ -46,6 +46,7 @@ export default function ReadingSessionScreen() {
           text: 'Stop',
           style: 'destructive',
           onPress: () => {
+            stopListening();
             endSession();
             router.back();
           },
@@ -79,7 +80,6 @@ export default function ReadingSessionScreen() {
           source={confettiAnimation}
           style={styles.confettiOverlay}
           loop={false}
-          speed={0.8}
         />
 
         <View style={styles.celebrationContainer}>
@@ -92,8 +92,7 @@ export default function ReadingSessionScreen() {
           <LottieAnimation
             source={starsAnimation}
             style={styles.starsAnimation}
-            loop
-            speed={0.6}
+            loop={3}
           />
 
           <View style={styles.statBadge}>
@@ -184,7 +183,7 @@ const styles = StyleSheet.create({
   // Celebration screen
   celebrationSafe: {
     flex: 1,
-    backgroundColor: '#FFF3E6',
+    backgroundColor: colors.bg.secondary,
   },
   confettiOverlay: {
     position: 'absolute',
@@ -204,8 +203,8 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   celebrationTitle: {
+    ...typography.display,
     fontSize: 44,
-    fontWeight: '800',
     color: colors.brand.primary,
     letterSpacing: 2,
     marginTop: spacing.md,
@@ -228,8 +227,7 @@ const styles = StyleSheet.create({
     ...shadows.button,
   },
   statBadgeNumber: {
-    fontSize: 36,
-    fontWeight: '800',
+    ...typography.display,
     color: colors.text.onBrand,
   },
   statBadgeLabel: {
@@ -251,7 +249,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   celebrationButtonText: {
-    fontSize: 20,
+    ...typography.h3,
     fontWeight: '700',
     color: colors.text.onBrand,
     letterSpacing: 2,
@@ -267,7 +265,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   celebrationSecondaryText: {
-    fontSize: 18,
+    ...typography.h3,
     fontWeight: '700',
     color: colors.brand.primary,
   },

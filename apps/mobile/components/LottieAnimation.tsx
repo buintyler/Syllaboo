@@ -6,28 +6,52 @@ interface LottieAnimationProps {
   source: ReturnType<typeof require>;
   style?: StyleProp<ViewStyle>;
   autoPlay?: boolean;
-  loop?: boolean;
-  speed?: number;
+  /** false = play once, true = loop forever, number = loop N times */
+  loop?: boolean | number;
 }
 
 /**
  * Wrapper around LottieView that respects reduce-motion accessibility setting.
- * When reduce-motion is enabled, shows the first frame as a static image.
+ * When reduce-motion is enabled, renders an empty placeholder.
+ * Defaults to suppressing animation until the accessibility check resolves
+ * to prevent a visible flash on first render.
  */
 export default function LottieAnimation({
   source,
   style,
   autoPlay = true,
   loop = false,
-  speed = 1,
 }: LottieAnimationProps) {
   const lottieRef = useRef<LottieView>(null);
-  const [reduceMotion, setReduceMotion] = useState(false);
+  const iterationRef = useRef(0);
+  const mountedRef = useRef(true);
+  const [motionReady, setMotionReady] = useState(false);
+  const [reduceMotion, setReduceMotion] = useState(true);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
-    return () => sub.remove();
+    mountedRef.current = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then((enabled) => {
+        if (mountedRef.current) {
+          setReduceMotion(enabled);
+          setMotionReady(true);
+        }
+      })
+      .catch(() => {
+        if (mountedRef.current) {
+          setReduceMotion(false);
+          setMotionReady(true);
+        }
+      });
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      if (mountedRef.current) {
+        setReduceMotion(enabled);
+      }
+    });
+    return () => {
+      mountedRef.current = false;
+      sub.remove();
+    };
   }, []);
 
   // When reduce-motion is on, show the last frame as a static image
@@ -37,10 +61,22 @@ export default function LottieAnimation({
     }
   }, [reduceMotion]);
 
-  if (reduceMotion) {
-    // Render nothing for motion-heavy decorative animations
+  if (!motionReady || reduceMotion) {
+    // Show placeholder until we know the motion preference, or if reduce-motion is on
     return <View style={style} />;
   }
+
+  // Numeric loop: play N times using loop={false} + manual replay on finish
+  const isCountedLoop = typeof loop === 'number';
+  const loopProp = isCountedLoop ? false : loop;
+
+  const handleAnimationFinish = (isCancelled: boolean) => {
+    if (isCancelled || !isCountedLoop) return;
+    iterationRef.current += 1;
+    if (iterationRef.current < (loop as number) && lottieRef.current) {
+      lottieRef.current.play();
+    }
+  };
 
   return (
     <LottieView
@@ -48,9 +84,9 @@ export default function LottieAnimation({
       source={source}
       style={style}
       autoPlay={autoPlay}
-      loop={loop}
-      speed={speed}
+      loop={loopProp}
       resizeMode="contain"
+      onAnimationFinish={handleAnimationFinish}
     />
   );
 }

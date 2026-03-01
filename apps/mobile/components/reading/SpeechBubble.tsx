@@ -79,7 +79,8 @@ export default function SpeechBubble({ message, mood = 'happy' }: SpeechBubblePr
   );
 }
 
-const BABY_BLUE_BORDER = 'rgba(74, 175, 224, 0.4)';
+// 40% opacity of brand.primary (#4AAFE0)
+const BRAND_BORDER = `${colors.brand.primary}66`;
 
 const styles = StyleSheet.create({
   container: {
@@ -108,14 +109,14 @@ const styles = StyleSheet.create({
     borderRightWidth: 8,
     borderTopColor: 'transparent',
     borderBottomColor: 'transparent',
-    borderRightColor: BABY_BLUE_BORDER,
+    borderRightColor: BRAND_BORDER,
     marginRight: -1,
   },
   bubble: {
     backgroundColor: colors.bg.surface,
     borderRadius: layout.cardBorderRadius,
     borderWidth: 1.5,
-    borderColor: BABY_BLUE_BORDER,
+    borderColor: BRAND_BORDER,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     flex: 1,

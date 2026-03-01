@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.light,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(147, 212, 236, 0.3)',
+    borderColor: `${colors.brand.primary}4D`,
   },
   progressFill: {
     height: '100%',
@@ -115,10 +115,10 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   starIcon: {
-    fontSize: 12,
+    fontSize: typography.small.fontSize,
   },
   statsText: {
     ...typography.small,
