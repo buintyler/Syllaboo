@@ -2,8 +2,11 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { colors, typography, spacing, layout } from '../../constants/theme';
 import type { DisplayWord, WordStatus } from '../../hooks/useReadingSession';
 
+const VISIBLE_WORD_COUNT = 10;
+
 interface WordDisplayProps {
   words: DisplayWord[];
+  currentWordIndex: number;
 }
 
 function getWordColor(status: WordStatus): string {
@@ -11,8 +14,9 @@ function getWordColor(status: WordStatus): string {
     case 'current':
       return colors.text.reading;
     case 'correct':
+      return colors.state.success;
     case 'incorrect':
-      return colors.text.primary;
+      return colors.state.error;
     case 'skipped':
       return colors.text.disabled;
     default:
@@ -20,14 +24,22 @@ function getWordColor(status: WordStatus): string {
   }
 }
 
-export default function WordDisplay({ words }: WordDisplayProps) {
+export default function WordDisplay({ words, currentWordIndex }: WordDisplayProps) {
+  // Show a window of up to VISIBLE_WORD_COUNT words centered on the current word
+  const half = Math.floor(VISIBLE_WORD_COUNT / 2);
+  let start = Math.max(0, currentWordIndex - half);
+  const end = Math.min(words.length, start + VISIBLE_WORD_COUNT);
+  // Adjust start if we're near the end of the story
+  start = Math.max(0, end - VISIBLE_WORD_COUNT);
+  const visibleWords = words.slice(start, end);
+
   return (
     <ScrollView
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.wordsRow}>
-        {words.map((word) => (
+        {visibleWords.map((word) => (
           <View
             key={word.wordIndex}
             style={styles.wordColumn}
@@ -45,6 +57,7 @@ export default function WordDisplay({ words }: WordDisplayProps) {
                   styles.wordText,
                   { color: getWordColor(word.status) },
                   word.status === 'current' && styles.currentWord,
+                  word.status === 'incorrect' && styles.incorrectWord,
                   word.status === 'skipped' && styles.skippedWord,
                 ]}
               >
@@ -95,6 +108,11 @@ const styles = StyleSheet.create({
   currentWord: {
     ...typography.readingHighlight,
     color: colors.text.reading,
+  },
+  incorrectWord: {
+    textDecorationLine: 'underline',
+    textDecorationStyle: 'dotted',
+    textDecorationColor: colors.state.error,
   },
   skippedWord: {
     textDecorationLine: 'line-through',

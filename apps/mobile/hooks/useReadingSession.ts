@@ -1,4 +1,7 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import { Alert } from 'react-native';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 
 export type WordStatus = 'upcoming' | 'current' | 'correct' | 'incorrect' | 'skipped';
 export type SessionPhase = 'idle' | 'listening' | 'completed';
@@ -18,6 +21,22 @@ interface StoryWord {
   phonetic: string;
   charOffset: number;
 }
+
+const RECORDING_OPTIONS: Audio.RecordingOptions = {
+  android: {},
+  ios: {
+    extension: '.raw',
+    outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+    audioQuality: Audio.IOSAudioQuality.HIGH,
+    sampleRate: 16000,
+    numberOfChannels: 1,
+    bitRate: 256000,
+    linearPCMBitDepth: 16,
+    linearPCMIsBigEndian: false,
+    linearPCMIsFloat: false,
+  },
+  web: {},
+};
 
 const MOCK_STORY_WORDS: StoryWord[] = [
   { wordIndex: 0, text: 'The', textNormalized: 'the', phonetic: 'thuh', charOffset: 0 },
@@ -49,12 +68,29 @@ const ENCOURAGEMENTS_RESTART = [
   'Starting fresh! Ready to read?',
 ];
 
+async function cleanupRecording(recording: Audio.Recording | null): Promise<void> {
+  if (!recording) return;
+  try {
+    const status = await recording.getStatusAsync();
+    if (status.isRecording) {
+      await recording.stopAndUnloadAsync();
+    }
+    const uri = recording.getURI();
+    if (uri) {
+      await FileSystem.deleteAsync(uri, { idempotent: true });
+    }
+  } catch {
+    // Recording may already be unloaded — safe to ignore
+  }
+}
+
 export function useReadingSession() {
   const [phase, setPhase] = useState<SessionPhase>('idle');
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [wordResults, setWordResults] = useState<Map<number, 'correct' | 'incorrect'>>(new Map());
   const [encouragement, setEncouragement] = useState(ENCOURAGEMENTS_IDLE[0]);
   const [lastWordCorrect, setLastWordCorrect] = useState<boolean | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const words: DisplayWord[] = useMemo(
     () =>
@@ -82,13 +118,37 @@ export function useReadingSession() {
 
   const pickRandom = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)];
 
-  const startListening = useCallback(() => {
+  const startListening = useCallback(async () => {
+    const { granted } = await Audio.requestPermissionsAsync();
+    if (!granted) {
+      Alert.alert(
+        'Microphone needed',
+        'Syllaboo needs your microphone to hear you read. Please enable it in Settings.',
+      );
+      return;
+    }
+
+    await Audio.setAudioModeAsync({
+      allowsRecordingIOS: true,
+      playsInSilentModeIOS: true,
+    });
+
+    const recording = new Audio.Recording();
+    await recording.prepareToRecordAsync(RECORDING_OPTIONS);
+    await recording.startAsync();
+    recordingRef.current = recording;
+
     setPhase('listening');
     setLastWordCorrect(null);
     setEncouragement(pickRandom(ENCOURAGEMENTS_LISTENING));
   }, []);
 
-  const stopListening = useCallback(() => {
+  const stopListening = useCallback(async () => {
+    await cleanupRecording(recordingRef.current);
+    recordingRef.current = null;
+
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
     setPhase('idle');
     setLastWordCorrect(null);
     setEncouragement(pickRandom(ENCOURAGEMENTS_IDLE));
@@ -115,7 +175,10 @@ export function useReadingSession() {
     [currentWordIndex, totalWords],
   );
 
-  const restart = useCallback(() => {
+  const restart = useCallback(async () => {
+    await cleanupRecording(recordingRef.current);
+    recordingRef.current = null;
+
     setPhase('idle');
     setCurrentWordIndex(0);
     setWordResults(new Map());
@@ -123,7 +186,12 @@ export function useReadingSession() {
     setEncouragement(pickRandom(ENCOURAGEMENTS_RESTART));
   }, []);
 
-  const endSession = useCallback(() => {
+  const endSession = useCallback(async () => {
+    await cleanupRecording(recordingRef.current);
+    recordingRef.current = null;
+
+    await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+
     setPhase('completed');
   }, []);
 

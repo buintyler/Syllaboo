@@ -30,11 +30,11 @@ export default function ReadingSessionScreen() {
     endSession,
   } = useReadingSession();
 
-  const handleMicPress = () => {
+  const handleMicPress = async () => {
     if (isListening) {
-      stopListening();
+      await stopListening();
     } else {
-      startListening();
+      await startListening();
     }
   };
 
@@ -45,9 +45,9 @@ export default function ReadingSessionScreen() {
         {
           text: 'Stop',
           style: 'destructive',
-          onPress: () => {
-            stopListening();
-            endSession();
+          onPress: async () => {
+            await stopListening();
+            await endSession();
             router.back();
           },
         },
@@ -142,7 +142,7 @@ export default function ReadingSessionScreen() {
       />
 
       <View style={styles.wordArea}>
-        <WordDisplay words={words} />
+        <WordDisplay words={words} currentWordIndex={currentWordIndex} />
       </View>
 
       <MicButton isListening={isListening} onPress={handleMicPress} />

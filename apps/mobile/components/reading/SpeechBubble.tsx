@@ -46,12 +46,12 @@ export default function SpeechBubble({ message, mood = 'happy' }: SpeechBubblePr
     Animated.sequence([
       Animated.timing(bounceAnim, {
         toValue: -6,
-        duration: 150,
+        duration: 120,
         useNativeDriver: true,
       }),
       Animated.timing(bounceAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 180,
         useNativeDriver: true,
       }),
     ]).start();
@@ -79,7 +79,7 @@ export default function SpeechBubble({ message, mood = 'happy' }: SpeechBubblePr
   );
 }
 
-// 40% opacity of brand.primary (#4AAFE0)
+// 40% opacity of brand.primary
 const BRAND_BORDER = `${colors.brand.primary}66`;
 
 const styles = StyleSheet.create({
@@ -124,6 +124,6 @@ const styles = StyleSheet.create({
   text: {
     ...typography.body,
     color: colors.text.primary,
-    textAlign: 'center',
+    textAlign: 'left',
   },
 });
